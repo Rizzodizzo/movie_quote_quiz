@@ -35,9 +35,10 @@ class Menu:
         self.menu_instructions.grid(row=1)
 
         self.error_label = Label(self.chose_rounds_frame,
-                                 text="Press the Green button to Start",
+                                 text="Leave blank for infinite mode",
                                  fg="#00b816", padx=10, pady=10,
-                                 font=("Arial", "12", "bold"))
+                                 font=("Arial", "12", "bold"),
+                                 wraplength=220)
         self.error_label.grid(row=2)
 
         self.entry_button_frame = Frame(self.chose_rounds_frame)
@@ -52,9 +53,39 @@ class Menu:
                                    font=button_font, width=10,
                                    bg="#8af29b",
                                    fg=button_fg,
-                                   activebackground="#6bcf7d")
+                                   activebackground="#6bcf7d",
+                                   command=lambda: self.check_rounds())
         self.start_button.grid(row=0, column=1,
                                padx=5, pady=5)
+
+    def check_rounds(self):
+        has_error = "no"
+        error = "Please enter a number above 0"
+
+        response = self.rounds_entry.get()
+
+        if response == "":
+            self.error_label.config(text="Number of rounds: infinite",
+                                    fg="#00b816")
+            return
+
+        # check that user has entered a valid number...
+        try:
+            response = int(response)
+
+            if response <= 0:
+                has_error = "yes"
+
+        except ValueError:
+            has_error = "yes"
+
+        # give response if there is error or not
+        if has_error == "yes":
+            self.error_label.config(text=error,
+                                    fg="#b30000")
+        else:
+            self.error_label.config(text="Number of rounds: {}".format(response),
+                                    fg="#00b816")
 
 
 # main routine
