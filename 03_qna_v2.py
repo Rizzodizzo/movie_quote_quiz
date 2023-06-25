@@ -2,6 +2,7 @@ from tkinter import *
 import csv
 import random
 
+
 class Menu:
 
     def __init__(self):
@@ -19,7 +20,8 @@ class Menu:
                                   font=("Arial", "18", "bold"))
         self.menu_heading.grid(row=0)
 
-        self.quote = self.generate_quote()
+        self.question = self.generate_quote_answers()
+        self.quote = self.question[0]
 
         self.quote_label = Label(self.chose_rounds_frame,
                                  text='Quote:\n"{}"'.format(self.quote),
@@ -34,13 +36,13 @@ class Menu:
         self.options_frame.grid(row=2)
 
         # A list of buttons to make a for loop that calls
-        answers = self.generate_answers()
+        answers = self.question[2]
         # the list and makes the button
         option_button_list = [
             [0, 0, answers[0]],
             [0, 1, answers[1]],
             [1, 0, answers[2]],
-            [1, 1, "Option 4"]
+            [1, 1, self.question[1]]
         ]
 
         for item in range(0, 4):
@@ -48,14 +50,14 @@ class Menu:
                                         width=16, height=3,
                                         bg="#FFF2CC", text=option_button_list[item][2],
                                         font=("Arial", 11),
-                                        wraplength=160,
+                                        wraplength=140,
                                         highlightbackground="#C9BFA1",
                                         highlightthickness=1)
             self.option_button.grid(row=option_button_list[item - 1][0],
                                     column=option_button_list[item - 1][1],
                                     padx=5, pady=5)
 
-    def generate_quote(self):
+    def generate_quote_answers(self):
         file = open("movie_quotes.csv", "r")
         movie_quotes = list(csv.reader(file, delimiter=","))
         file.close()
@@ -63,36 +65,13 @@ class Menu:
         # remove the first row (header values
         movie_quotes.pop(0)
 
-        # get the first 50 rows ( used to develop colour
-        # buttons for play GUI
-        print(movie_quotes[:50])
+        # get a random row to get the question and correct answer from
+        correct_info = random.choice(movie_quotes)
+        print(correct_info)
 
-        print("Length: {}".format(len(movie_quotes)))
-
-        # make a new list to put all the quotes in
-        all_quotes = []
-        for item in movie_quotes:
-            all_quotes.append(item[0])
-
-        # pick a random quote
-        rand_quote = random.choice(all_quotes)
-        print(rand_quote)
-
-        return rand_quote
-
-    def generate_answers(self):
-        file = open("movie_quotes.csv", "r")
-        movie_quotes = list(csv.reader(file, delimiter=","))
-        file.close()
-
-        # remove the first row (header values
-        movie_quotes.pop(0)
-
-        # get the first 50 rows ( used to develop colour
-        # buttons for play GUI
-        print(movie_quotes)
-
-        print("Length: {}".format(len(movie_quotes)))
+        question = correct_info[0]
+        answer = correct_info[1]
+        print(answer)
 
         answers = []
         # make a new list to put all the quotes in
@@ -100,13 +79,16 @@ class Menu:
         for item in movie_quotes:
             all_movies.append(item[1])
 
-        # pick a random answers
+        # pick three random answers
         for i in range(0, 3):
             rand_movie = random.choice(all_movies)
             print(rand_movie)
+            # check if answer is the same as correct
+            if rand_movie == answer:
+                continue
             answers.append(rand_movie)
 
-        return answers
+        return [question, answer, answers]
 
 
 # main routine
