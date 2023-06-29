@@ -103,6 +103,9 @@ class Play:
     def __init__(self, how_many):
         self.play_box = Toplevel()
 
+        self.num_correct = 0
+        self.num_incorrect = 0
+
         # if users press cross at tip, closes help and
         # 'refuses' help button
         self.play_box.protocol('WM_DELETE_WINDOW',
@@ -135,8 +138,8 @@ class Play:
         # A list of buttons to make a for loop that calls
         answers = self.question[2]
         # randomise a list of 4 positions to make the answers randomise positions'
-        position_list = [0, 1, 2, 3]
-        random.shuffle(position_list)
+        self.position_list = [0, 1, 2, 3]
+        random.shuffle(self.position_list)
         # the list and makes the button
         option_button_list = [
             [0, 0, answers[0]],
@@ -145,17 +148,33 @@ class Play:
             [1, 1, self.question[1]]
         ]
 
+        # list to hold references for answer buttons
+        # So I can easily config it later
+        self.answer_button_ref = []
+
         for item in range(0, 4):
             self.option_button = Button(self.options_frame,
-                                        width=16, height=3,
-                                        bg="#FFF2CC", text=option_button_list[item][2],
-                                        font=("Arial", 11),
+                                        width=15, height=3,
+                                        bg="#FFF2CC", text=option_button_list[self.position_list[item]][2],
+                                        font=("Arial", 11), padx=5,
                                         wraplength=150, activebackground="#FFF2CC",
                                         highlightbackground="#C9BFA1",
                                         highlightthickness=1)
-            self.option_button.grid(row=option_button_list[position_list[item - 1]][0],
-                                    column=option_button_list[position_list[item - 1]][1],
+            self.option_button.grid(row=option_button_list[self.position_list[item - 1]][0],
+                                    column=option_button_list[self.position_list[item - 1]][1],
                                     padx=5, pady=5)
+            # add buttons to answer list
+            self.answer_button_ref.append(self.option_button)
+
+        # separate the different options
+        self.option_one = self.answer_button_ref[0]
+        self.option_one.config(command=lambda: self.next_round(option_button_list[self.position_list[0]][2]))
+        self.option_two = self.answer_button_ref[1]
+        self.option_two.config(command=lambda: self.next_round(option_button_list[self.position_list[1]][2]))
+        self.option_three = self.answer_button_ref[2]
+        self.option_three.config(command=lambda: self.next_round(option_button_list[self.position_list[2]][2]))
+        self.option_four = self.answer_button_ref[3]
+        self.option_four.config(command=lambda: self.next_round(option_button_list[self.position_list[3]][2]))
 
         # recycling from colour game the control buttons stay the same
         self.control_frame = Frame(self.in_quiz_frame)
@@ -237,13 +256,54 @@ class Play:
         for i in range(0, 3):
             while True:
                 rand_movie = random.choice(all_movies)
-                print(rand_movie)
                 # check if answer is the same as correct
                 if rand_movie != self.answer and rand_movie not in answers:
                     answers.append(rand_movie)
                     break
 
         return [question, self.answer, answers]
+
+    def next_round(self, user_answer):
+
+        print(user_answer)
+        # check if answer is correct or not
+        if user_answer == self.answer:
+            self.num_correct += 1
+        else:
+            self.num_incorrect += 1
+
+        # update mini stats
+        self.stats_label.config(text="Correct:  {}   Incorrect:  {}".format(self.num_correct, self.num_incorrect))
+
+        # get new quote and answers
+        self.question = self.generate_quote_answers()
+        self.quote = self.question[0]
+
+        # update quotes
+        self.quote_label.config(text='Quote:\n"{}"'.format(self.quote))
+
+        # A list of buttons to make a for loop that calls
+        answers = self.question[2]
+        # the list and makes the button
+        option_button_list = [
+            [0, 0, answers[0]],
+            [0, 1, answers[1]],
+            [1, 0, answers[2]],
+            [1, 1, self.question[1]]
+        ]
+
+        # shuffle positions
+        random.shuffle(self.position_list)
+
+        # separate the different options
+        self.option_one.config(text=option_button_list[self.position_list[0]][2],
+                               command=lambda: self.next_round(option_button_list[self.position_list[0]][2]))
+        self.option_two.config(text=option_button_list[self.position_list[1]][2],
+                               command=lambda: self.next_round(option_button_list[self.position_list[1]][2]))
+        self.option_three.config(text=option_button_list[self.position_list[2]][2],
+                                 command=lambda: self.next_round(option_button_list[self.position_list[2]][2]))
+        self.option_four.config(text=option_button_list[self.position_list[3]][2],
+                                command=lambda: self.next_round(option_button_list[self.position_list[3]][2]))
 
 
 # main routine
