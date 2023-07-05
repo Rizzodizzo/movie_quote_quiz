@@ -112,6 +112,10 @@ class Play:
         self.num_correct = 0
         self.num_incorrect = 0
 
+        # list of questions and answers for the statistics window
+        # will be updated every question
+        self.statistics = []
+
         # if users press cross at tip, closes help and
         # 'refuses' help button
         self.play_box.protocol('WM_DELETE_WINDOW',
@@ -143,9 +147,11 @@ class Play:
 
         # A list of buttons to make a for loop that calls
         answers = self.question[2]
+
         # randomise a list of 4 positions to make the answers randomise positions'
         self.position_list = [0, 1, 2, 3]
         random.shuffle(self.position_list)
+
         # the list and makes the button
         option_button_list = [
             [0, 0, answers[0]],
@@ -166,7 +172,8 @@ class Play:
                                         wraplength=150, activebackground="#FFF2CC",
                                         highlightbackground="#C9BFA1",
                                         highlightthickness=1,
-                                        command=lambda i=self.position_list[item]: self.check_answer(option_button_list[i][2]))
+                                        command=lambda i=self.position_list[item]: self.check_answer(
+                                            option_button_list[i][2]))
             self.option_button.grid(row=option_button_list[self.position_list[item - 1]][0],
                                     column=option_button_list[self.position_list[item - 1]][1],
                                     padx=5, pady=5)
@@ -204,30 +211,32 @@ class Play:
 
         # get stats button and disable it
         self.to_stats_btn = self.control_button_ref[1]
-        self.to_stats_btn.config(state=DISABLED)
+        self.to_stats_btn.config(state=DISABLED,
+                                 command=lambda: self.to_stats(self.statistics))
 
         # get start over button
         self.restart_btn = self.control_button_ref[2]
         self.restart_btn.config(text="Restart", command=lambda: self.close_play())
 
+        # frame for the next round button and the temporary statistics
         self.temp_state_frame = Frame(self.in_quiz_frame)
         self.temp_state_frame.grid(row=6, padx=10, pady=10)
 
         self.next_round_button = Button(self.temp_state_frame,
                                         text="Next Round",
-                                        font=("Arial", "12"),
+                                        font=("Arial", "12"), width=10,
                                         bg="#e88cff", state=DISABLED,
                                         command=lambda: self.next_round())
-        self.next_round_button.grid(row=0, column=1, padx=10)
+        self.next_round_button.grid(row=0, column=0,  padx=5)
 
         self.stats_label = Label(self.temp_state_frame,
                                  text="Correct:  {}   Incorrect:  {}".format(self.num_correct, self.num_incorrect),
                                  justify="left",
                                  font=("Arial", "12"),
-                                 bg="#ffe380", pady=5, padx=10,
+                                 bg="#ffe380", pady=5, padx=5,
                                  highlightbackground="#e3c96f",
                                  highlightthickness=1)
-        self.stats_label.grid(row=0, column=0)
+        self.stats_label.grid(row=0, column=1, padx=5)
 
     def close_play(self):
         # reshow menu
@@ -294,7 +303,8 @@ class Play:
         option_config_count = 0
         for item in self.answer_button_ref:
             item.config(text=option_button_list[self.position_list[option_config_count]][2],
-                        command=lambda i=self.position_list[option_config_count]: self.check_answer(option_button_list[i][2]),
+                        command=lambda i=self.position_list[option_config_count]: self.check_answer(
+                            option_button_list[i][2]),
                         state=NORMAL, bg="#FFF2CC")
             option_config_count += 1
 
@@ -308,6 +318,9 @@ class Play:
             self.num_correct += 1
         else:
             self.num_incorrect += 1
+
+        # enable stats button as a question has been answered
+        self.to_stats_btn.config(state=NORMAL)
 
         # check if answer is correct or not
         if self.num_correct >= self.num_incorrect:
@@ -339,8 +352,178 @@ class Play:
         else:
             self.restart_btn.config(bg="#B3FF66", text="Play Again")
 
+        # update statistics list so the stats includes the question just answered
+        # and add item to the top of the list so that the most recent is shown at
+        # the top
+        current_stat = [self.quote, user_answer, self.answer]
+        self.statistics.insert(0, current_stat)
+
     def to_help(self):
         DisplayHelp(self)
+
+    def to_stats(self, statistics):
+        DisplayStats(self, statistics)
+
+
+class DisplayStats:
+    def __init__(self, partner, statistics):
+        self.stats_box = Toplevel()
+
+        # number of correct and incorrect variables
+        self.num_correct = 0
+        self.num_incorrect = 0
+
+        # disable the statistics button when stats is open
+        partner.to_stats_btn.config(state=DISABLED)
+
+        # make sure the window will close when 'x' at top left is clicked
+        self.stats_box.protocol('WM_DELETE_WINDOW',
+                                partial(self.close_stats, partner))
+
+        # create the statistics heading
+        heading_label = Label(self.stats_box, text="Statistics", font=("Arial", 16, "bold"))
+        heading_label.pack(pady=10)
+
+        # frame for the statistics
+        self.stats_table_frame = Frame(self.stats_box, width=300, height=200)
+        self.stats_table_frame.pack()
+
+        # a canvas which CHATGPT showed me how to use to get the scroll feature
+        self.stats_table = Canvas(self.stats_table_frame, width=490, height=300)
+        self.scrollbar = Scrollbar(self.stats_table_frame, orient="vertical", command=self.stats_table.yview)
+        self.table_inner_frame = Frame(self.stats_table, padx=20, pady=20)
+
+        # set the region that scrolls down to the whole window
+        self.table_inner_frame.bind(
+            "<Configure>",
+            lambda e: self.stats_table.configure(scrollregion=self.stats_table.bbox("all"))
+        )
+
+        # the next few lines is Chat GPT, here it is creating a window that goes
+        # in the frame, and it can hold 1 tkinter widget
+        self.stats_table.create_window((0, 0), window=self.table_inner_frame, anchor="nw")
+
+        # here Chat creates a scroll bar on hte left in the window
+        self.stats_table.configure(yscrollcommand=self.scrollbar.set)
+
+        # here Chat binds mouse scrolling using a function called _on_mousewheel
+        self.stats_table.bind_all("<MouseWheel>", self._on_mousewheel)
+
+        # here this puts the scrollbar on the right and the table with stats on the left
+        self.stats_table.pack(side="left", fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y", padx=10, pady=10)
+
+        # headings for the columns
+        question_label_heading = Label(self.table_inner_frame, text="Question",
+                                       padx=10, pady=2, width=25, height=3, justify="left",
+                                       wraplength=170, bg="#A0A0A0")
+        question_label_heading.grid(row=0, column=0, sticky="ew")
+
+        user_answer_label_heading = Label(self.table_inner_frame, text="Your Answer",
+                                          padx=10, pady=2, width=15, height=3, justify="left",
+                                          wraplength=100, bg="#A0A0A0")
+        user_answer_label_heading.grid(row=0, column=1, sticky="ew")
+
+        answer_label_heading = Label(self.table_inner_frame, text="Answer",
+                                     padx=10, pady=2, width=15, height=3, justify="left",
+                                     wraplength=100, bg="#A0A0A0")
+        answer_label_heading.grid(row=0, column=2, sticky="ew")
+
+        # loop that creates the items that goes in the table
+        # variable to change the row each loop
+        self.list_row = 1
+        for i in list(statistics):
+            question_label = Label(self.table_inner_frame, text=i[0],
+                                   padx=10, pady=5, width=25, height=3,
+                                   wraplength=170)
+            question_label.grid(row=self.list_row, column=0, sticky="ew")
+
+            user_answer_label = Label(self.table_inner_frame, text=i[1],
+                                      padx=10, pady=5, width=15, height=3,
+                                      wraplength=100)
+            user_answer_label.grid(row=self.list_row, column=1, sticky="ew")
+
+            answer_label = Label(self.table_inner_frame, text=i[2],
+                                 padx=10, pady=5, width=15, height=3,
+                                 wraplength=100)
+            answer_label.grid(row=self.list_row, column=2, sticky="ew")
+
+            # add 1 to num of rows
+            self.list_row += 1
+
+            # checks if answer was incorrect or correct and assigns colour to the
+            # corresponding row, also increase number of correct and incorrect
+            if i[1] == i[2]:
+                question_label.config(bg="#98eda6",
+                                      highlightbackground="#55c968",
+                                      highlightthickness=1)
+                user_answer_label.config(bg="#98eda6",
+                                         highlightbackground="#55c968",
+                                         highlightthickness=1)
+                answer_label.config(bg="#98eda6",
+                                    highlightbackground="#55c968",
+                                    highlightthickness=1)
+                self.num_correct += 1
+            else:
+                question_label.config(bg="#ed9898",
+                                      highlightbackground="#d14b4b",
+                                      highlightthickness=1)
+                user_answer_label.config(bg="#ed9898",
+                                         highlightbackground="#d14b4b",
+                                         highlightthickness=1)
+                answer_label.config(bg="#ed9898",
+                                    highlightbackground="#d14b4b",
+                                    highlightthickness=1)
+                self.num_incorrect += 1
+
+        # Frame for the general stats like total correct or incorrect
+        self.general_stats_frame = Frame(self.stats_box)
+        self.general_stats_frame.pack()
+
+        # next three labels are the stats, I had to pack them in this order else it
+        # wouldn't format it correctly.
+        self.total_questions_label = Label(self.general_stats_frame, font=("Arial", "10"),
+                                           text="Total Questions: {}".format(len(statistics)), bg="#e1dcfc",
+                                           highlightthickness=1,
+                                           highlightbackground="#6855cb",
+                                           pady=10, padx=5)
+        self.total_questions_label.pack(side=LEFT, padx=10, pady=10)
+
+        self.total_incorrect_label = Label(self.general_stats_frame, font=("Arial", "10"),
+                                           text="Total Incorrect: {}".format(self.num_incorrect), bg="#f8cecc",
+                                           highlightthickness=1,
+                                           highlightbackground="#c95651",
+                                           pady=10, padx=5)
+        self.total_incorrect_label.pack(side=RIGHT, padx=10, pady=10)
+
+        self.total_correct_label = Label(self.general_stats_frame, font=("Arial", "10"),
+                                         text="Total Correct: {}".format(self.num_correct), bg="#d5e8d4",
+                                         highlightthickness=1,
+                                         highlightbackground="#54c94e",
+                                         pady=10, padx=5)
+        self.total_correct_label.pack(padx=10, pady=10)
+
+        # frame for the buttons
+        self.control_stats_frame = Frame(self.stats_box, padx=10, pady=10)
+        self.control_stats_frame.pack(side=BOTTOM)
+
+        # button to close stats
+        self.dismiss_button = Button(self.control_stats_frame,
+                                     font=("Arial", "14"),
+                                     text="Dismiss", bg="#FFE6CC",
+                                     highlightbackground="#e39545",
+                                     highlightthickness=1,
+                                     command=partial(self.close_stats, partner))
+        self.dismiss_button.pack()
+
+    # function so that you can scroll wiht the mouse wheel
+    def _on_mousewheel(self, event):
+        self.stats_table.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    # close Stats function
+    def close_stats(self, partner):
+        partner.to_stats_btn.config(state=NORMAL)
+        self.stats_box.destroy()
 
 
 class DisplayHelp:
@@ -397,12 +580,6 @@ class DisplayHelp:
         # Put help button back tp normal...
         partner.to_help_btn.config(state=NORMAL)
         self.help_box.destroy()
-
-    def close_play(self):
-        # reshow menu
-        # game / allow new game to start
-        root.deiconify()
-        self.play_box.destroy()
 
 
 # main routine
