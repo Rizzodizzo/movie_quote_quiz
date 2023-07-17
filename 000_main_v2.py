@@ -4,6 +4,9 @@ import csv
 import random
 
 
+# initial class or the root window where the general instructions
+# will be and where they will chose the number of rounds they want
+# to play
 class Menu:
 
     def __init__(self):
@@ -61,6 +64,8 @@ class Menu:
         self.start_button.grid(row=0, column=1,
                                padx=5, pady=5)
 
+    # the number checker to make sure that the user puts in a valid
+    # number of rounds which is an integer more than 0 or blank (for infinite)
     def check_rounds(self):
         has_error = "no"
         error = "Please enter a number above 0"
@@ -83,7 +88,7 @@ class Menu:
         except ValueError:
             has_error = "yes"
 
-        # give response if there is error or not
+        # give response if there is an error or not
         if has_error == "yes":
             self.error_label.config(text=error,
                                     fg="#b30000")
@@ -92,6 +97,7 @@ class Menu:
                                     fg="#00b816")
             self.to_play(response)
 
+    # class the opens game and hides the root window (this class)
     def to_play(self, num_rounds):
         Play(num_rounds)
 
@@ -99,6 +105,9 @@ class Menu:
         root.withdraw()
 
 
+# the class for the actual game, In this class the window you'll see is
+# what the user should see when they have started the quiz and are answering
+# questions, as well as other functions at the bottom
 class Play:
 
     def __init__(self, how_many):
@@ -238,12 +247,14 @@ class Play:
                                  highlightthickness=1)
         self.stats_label.grid(row=0, column=1, padx=5)
 
+    # close the play window function
     def close_play(self):
         # reshow menu
         # game / allow new game to start
         root.deiconify()
         self.play_box.destroy()
 
+    # generates quotes and answers  and returns them
     def generate_quote_answers(self):
         file = open("movie_quotes.csv", "r")
         movie_quotes = list(csv.reader(file, delimiter=","))
@@ -274,6 +285,8 @@ class Play:
 
         return [question, self.answer, answers]
 
+    # Changes all the GUI when next round is clicked
+    # And gets the new question and answers using the questions and answers function
     def next_round(self):
 
         # change heading
@@ -311,9 +324,10 @@ class Play:
         # disable next round button
         self.next_round_button.config(state=DISABLED)
 
+    # checks if the button that the user picked is match with the
+    # correct answer and changes the colours fo the buttons pressed
+    # with respect to if they got it right or wrong
     def check_answer(self, user_answer):
-
-        print(user_answer)
         if user_answer == self.answer:
             self.num_correct += 1
         else:
@@ -358,13 +372,18 @@ class Play:
         current_stat = [self.quote, user_answer, self.answer]
         self.statistics.insert(0, current_stat)
 
+    # function that calls help class
     def to_help(self):
         DisplayHelp(self)
 
+    # function that calls the statistics class
     def to_stats(self, statistics):
         DisplayStats(self, statistics)
 
 
+# the Statistics window which displays all the questions the user has answered
+# in the time they've played the quiz, puts the most recent question at the top
+# and shows general stats at the bottom
 class DisplayStats:
     def __init__(self, partner, statistics):
         self.stats_box = Toplevel()
@@ -516,7 +535,8 @@ class DisplayStats:
                                      command=partial(self.close_stats, partner))
         self.dismiss_button.pack()
 
-    # function so that you can scroll wiht the mouse wheel
+    # function so that you can scroll with the mouse wheel
+    # and not just the bar on the side. (detects mouse wheel input)
     def _on_mousewheel(self, event):
         self.stats_table.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
@@ -526,6 +546,9 @@ class DisplayStats:
         self.stats_box.destroy()
 
 
+# class that displays the help window when the help button is pressed.
+# Has detailed instruction on how it works with descriptions of the
+# different buttons uses
 class DisplayHelp:
 
     def __init__(self, partner):
@@ -585,6 +608,6 @@ class DisplayHelp:
 # main routine
 if __name__ == "__main__":
     root = Tk()
-    root.title("Colour Quest")
+    root.title("Movie Quote Quiz")
     Menu()
     root.mainloop()
